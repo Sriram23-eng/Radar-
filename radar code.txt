@@ -1,0 +1,70 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Servo.h>
+
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define BUZZER_PIN 7
+
+Servo servo;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+    pinMode(BUZZER_PIN, OUTPUT);
+    servo.attach(6);
+    lcd.begin();
+    lcd.backlight();
+    Serial.begin(9600);
+}
+
+long getDistance() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    long duration = pulseIn(ECHO_PIN, HIGH);
+    return duration * 0.034 / 2;
+}
+
+void loop() {
+    for (int angle = 0; angle <= 180; angle += 10) {
+        servo.write(angle);
+        delay(300);
+        long distance = getDistance();
+        displayData(angle, distance);
+    }
+
+    for (int angle = 180; angle >= 0; angle -= 10) {
+        servo.write(angle);
+        delay(300);
+        long distance = getDistance();
+        displayData(angle, distance);
+    }
+}
+
+void displayData(int angle, long distance) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Angle: ");
+    lcd.print(angle);
+    lcd.print(" deg");
+    
+    lcd.setCursor(0, 1);
+    lcd.print("Dist: ");
+    lcd.print(distance);
+    lcd.print(" cm");
+    
+    Serial.print("Angle: ");
+    Serial.print(angle);
+    Serial.print(" | Distance: ");
+    Serial.println(distance);
+    
+    if (distance > 0 && distance < 20) {
+        digitalWrite(BUZZER_PIN, HIGH);
+    } else {
+        digitalWrite(BUZZER_PIN, LOW);
+    }
+}
